@@ -198,6 +198,51 @@
     .re-roll {
       text-align: center;
     }
+
+    .add-player-section {
+      max-width: 500px;
+      margin: 3rem auto 0;
+      border-top: 1px solid #2a2d3e;
+      padding-top: 1.5rem;
+    }
+
+    .add-player-toggle {
+      background: none;
+      border: none;
+      color: #555;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: block;
+      margin: 0 auto;
+      padding: 0.4rem 1rem;
+    }
+
+    .add-player-toggle:hover { color: #888; }
+
+    .add-player-form {
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .add-player-form.open { display: flex; }
+
+    .form-input {
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1e2130;
+      color: #e0e0e0;
+      font-size: 1rem;
+      outline: none;
+      width: 100%;
+    }
+
+    .form-input:focus { border-color: #4fc3f7; }
+
+    .add-success { color: #66bb6a; text-align: center; font-size: 0.95rem; }
+    .add-error   { color: #ef5350; text-align: center; font-size: 0.95rem; }
   </style>
 </head>
 <body>
@@ -221,6 +266,17 @@
     <div class="teams-grid" id="teamsGrid"></div>
     <div class="re-roll">
       <button class="btn btn-secondary" onclick="createTeams()">🔀 ערבב מחדש</button>
+    </div>
+  </div>
+
+  <div class="add-player-section">
+    <button class="add-player-toggle" onclick="toggleAddForm()">+ הוסף שחקן</button>
+    <div class="add-player-form" id="addForm">
+      <input class="form-input" type="password" id="addPassword" placeholder="סיסמה" />
+      <input class="form-input" type="text" id="addName" placeholder="שם שחקן" />
+      <input class="form-input" type="number" id="addScore" placeholder="ציון (למשל 14.5)" step="0.5" min="1" max="20" />
+      <button class="btn btn-primary" onclick="submitAddPlayer()">הוסף</button>
+      <div id="addMsg"></div>
     </div>
   </div>
 
@@ -310,6 +366,44 @@
       });
       document.getElementById('teamsSection').style.display = 'block';
       document.getElementById('teamsSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleAddForm() {
+      document.getElementById('addForm').classList.toggle('open');
+      document.getElementById('addMsg').textContent = '';
+    }
+
+    async function submitAddPlayer() {
+      const password = document.getElementById('addPassword').value;
+      const name = document.getElementById('addName').value.trim();
+      const score = parseFloat(document.getElementById('addScore').value);
+      const msgEl = document.getElementById('addMsg');
+
+      if (!name || isNaN(score)) {
+        msgEl.className = 'add-error';
+        msgEl.textContent = 'יש למלא שם וציון';
+        return;
+      }
+
+      const res = await fetch('/api/players/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, name, score }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        msgEl.className = 'add-error';
+        msgEl.textContent = data.error;
+      } else {
+        msgEl.className = 'add-success';
+        msgEl.textContent = `${data.name} נוסף בהצלחה עם ציון ${data.score}`;
+        document.getElementById('addName').value = '';
+        document.getElementById('addScore').value = '';
+        const newRes = await fetch('/api/players');
+        allPlayers = await newRes.json();
+        renderPlayers();
+      }
     }
 
     init();
