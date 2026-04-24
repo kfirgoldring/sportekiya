@@ -1,6 +1,8 @@
 import os
 import re
 import random
+import difflib
+import unicodedata
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -165,19 +167,32 @@ def create_teams(req: TeamsRequest):
     return {"teams": generate_teams(req.players)}
 
 
+def clean_name(raw: str) -> str:
+    raw = re.sub(r"\s*@\S+.*$", "", raw)                        # strip @mention and anything after
+    raw = "".join(c for c in raw if unicodedata.category(c) != "Cf")  # strip invisible chars
+    raw = re.sub(r"[a-zA-Z0-9]+\s*$", "", raw)                 # strip trailing Latin/digits
+    return raw.strip()
+
+
+def resolve_player(name: str) -> str | None:
+    if name in players:
+        return name
+    matches = difflib.get_close_matches(name, players.keys(), n=1, cutoff=0.75)
+    return matches[0] if matches else None
+
+
 def parse_players_message(text: str) -> tuple[list[str], list[str]]:
     found, unknown = [], []
     for line in text.split("\n"):
         match = re.match(r"^\d+\.\s*(.*)", line)
         if not match:
             continue
-        name = match.group(1)
-        name = re.sub(r"@\S+", "", name)          # strip @mentions
-        name = re.sub(r"[⁠‏‎]", "", name).strip()
+        name = clean_name(match.group(1))
         if not name:
             continue
-        if name in players:
-            found.append(name)
+        resolved = resolve_player(name)
+        if resolved:
+            found.append(resolved)
         else:
             unknown.append(name)
     return found, unknown
