@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sportekiya - Team Builder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+      color: #ffffff;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .counter {
+      text-align: center;
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      color: #aaa;
+    }
+
+    .counter span {
+      font-weight: bold;
+      color: #4fc3f7;
+      font-size: 1.4rem;
+    }
+
+    .counter span.over { color: #ef5350; }
+
+    .search-bar {
+      display: block;
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto 1.5rem;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1e2130;
+      color: #e0e0e0;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .search-bar:focus { border-color: #4fc3f7; }
+
+    .player-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.6rem;
+      max-width: 900px;
+      margin: 0 auto 2rem;
+    }
+
+    .player-btn {
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      border: 2px solid #2a2d3e;
+      background: #1e2130;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 0.95rem;
+      text-align: center;
+      transition: all 0.15s;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .player-btn:hover { border-color: #4fc3f7; color: #fff; }
+
+    .player-btn.selected {
+      background: #1a3a4a;
+      border-color: #4fc3f7;
+      color: #fff;
+    }
+
+    .player-btn .score {
+      font-size: 0.78rem;
+      color: #888;
+      margin-right: 0.4rem;
+    }
+
+    .player-btn.selected .score { color: #4fc3f7; }
+
+    .actions {
+      text-align: center;
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.7rem 2rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #4fc3f7;
+      color: #0f1117;
+    }
+
+    .btn-primary:not(:disabled):hover { opacity: 0.85; }
+
+    .btn-secondary {
+      background: #2a2d3e;
+      color: #ccc;
+    }
+
+    .btn-secondary:hover { background: #353848; }
+
+    .error-msg {
+      text-align: center;
+      color: #ef5350;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .teams-section {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .teams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .team-card {
+      background: #1e2130;
+      border-radius: 12px;
+      padding: 1.2rem;
+      border: 1px solid #2a2d3e;
+    }
+
+    .team-card h3 {
+      font-size: 1rem;
+      color: #4fc3f7;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .team-card h3 .team-score {
+      font-size: 0.85rem;
+      color: #888;
+      font-weight: normal;
+    }
+
+    .team-card ul {
+      list-style: none;
+    }
+
+    .team-card ul li {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid #2a2d3e;
+      font-size: 0.95rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .team-card ul li:last-child { border-bottom: none; }
+
+    .team-card ul li .p-score {
+      color: #666;
+      font-size: 0.82rem;
+    }
+
+    .re-roll {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚽ Sportekiya</h1>
+  <p class="subtitle">בחר 15 שחקנים וצור קבוצות מאוזנות</p>
+
+  <div class="counter">נבחרו <span id="count">0</span> / 15</div>
+
+  <input class="search-bar" type="text" id="search" placeholder="חיפוש שחקן..." oninput="renderPlayers()" />
+
+  <div class="player-grid" id="playerGrid"></div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="createBtn" onclick="createTeams()" disabled>צור קבוצות</button>
+    <button class="btn btn-secondary" onclick="clearSelection()">נקה</button>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="teams-section" id="teamsSection" style="display:none">
+    <div class="teams-grid" id="teamsGrid"></div>
+    <div class="re-roll">
+      <button class="btn btn-secondary" onclick="createTeams()">🔀 ערבב מחדש</button>
+    </div>
+  </div>
+
+  <script>
+    let allPlayers = [];
+    let selected = new Set();
+
+    async function init() {
+      const res = await fetch('/api/players');
+      allPlayers = await res.json();
+      renderPlayers();
+    }
+
+    function renderPlayers() {
+      const query = document.getElementById('search').value.trim().toLowerCase();
+      const grid = document.getElementById('playerGrid');
+      grid.innerHTML = '';
+
+      const filtered = query
+        ? allPlayers.filter(p => p.includes(query))
+        : allPlayers;
+
+      filtered.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'player-btn' + (selected.has(name) ? ' selected' : '');
+        btn.innerHTML = `<span>${name}</span>`;
+        btn.onclick = () => toggle(name);
+        grid.appendChild(btn);
+      });
+    }
+
+    function toggle(name) {
+      if (selected.has(name)) {
+        selected.delete(name);
+      } else {
+        selected.add(name);
+      }
+      updateCounter();
+      renderPlayers();
+    }
+
+    function updateCounter() {
+      const count = selected.size;
+      const el = document.getElementById('count');
+      el.textContent = count;
+      el.className = count > 15 ? 'over' : '';
+      document.getElementById('createBtn').disabled = count !== 15;
+    }
+
+    function clearSelection() {
+      selected.clear();
+      updateCounter();
+      renderPlayers();
+      document.getElementById('teamsSection').style.display = 'none';
+      document.getElementById('errorMsg').textContent = '';
+    }
+
+    async function createTeams() {
+      document.getElementById('errorMsg').textContent = '';
+      const res = await fetch('/api/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ players: [...selected] }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById('errorMsg').textContent = data.error;
+        return;
+      }
+
+      renderTeams(data.teams);
+    }
+
+    function renderTeams(teams) {
+      const grid = document.getElementById('teamsGrid');
+      grid.innerHTML = '';
+      const labels = ['קבוצה א', 'קבוצה ב', 'קבוצה ג'];
+      teams.forEach((team, i) => {
+        const card = document.createElement('div');
+        card.className = 'team-card';
+        card.innerHTML = `
+          <h3>${labels[i]} <span class="team-score">סה"כ: ${team.score}</span></h3>
+          <ul>${team.players.map(p => `<li><span>${p}</span></li>`).join('')}</ul>
+        `;
+        grid.appendChild(card);
+      });
+      document.getElementById('teamsSection').style.display = 'block';
+      document.getElementById('teamsSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    init();
+  </script>
+</body>
+</html>
